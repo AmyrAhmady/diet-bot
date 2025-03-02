@@ -467,7 +467,6 @@
             selectedDay: null,
             today: new Date(),
             selectedDay: null, // Will be set to today's day by default
-            daysOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
             activeTab: 'schedule'
         };
 
@@ -492,11 +491,24 @@
             });
         }
 
-        // Get day of week (0-6 where 0 is Monday)
-        function getDayOfWeek(date) {
-            const day = date.getDay();
-            // Convert Sunday (0) to 6, and other days to 0-5
-            return day === 0 ? 6 : day - 1;
+        // Get the day name from a date
+        function getDayName(date) {
+            return date.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+
+        // Generate the week days starting from a specific date
+        function generateWeekDays(startDate) {
+            const days = [];
+            const date = new Date(startDate);
+
+            // Generate 7 consecutive days starting from the start date
+            for (let i = 0; i < 7; i++) {
+                const newDate = new Date(date);
+                newDate.setDate(date.getDate() + i);
+                days.push(getDayName(newDate));
+            }
+
+            return days;
         }
 
         // Calculate date for a specific day in the selected week
@@ -506,8 +518,13 @@
 
             const startDateObj = new Date(state.startDate);
 
+            // Generate the days of week for the first week
+            const firstWeekDays = generateWeekDays(startDateObj);
+
             // Find the day index in the days of week array
-            const dayIndex = state.daysOfWeek.indexOf(day);
+            const dayIndex = firstWeekDays.indexOf(day);
+
+            if (dayIndex === -1) return null; // Day not found
 
             // Calculate the date for the requested day based on start date
             // First, find how many days from the start date
@@ -732,10 +749,13 @@
 
             if (!state.startDate) return;
 
+            // Generate the days of week for the current program
+            const weekDays = generateWeekDays(state.startDate);
+
             const today = new Date();
 
             // Create day navigation items
-            state.daysOfWeek.forEach((day, index) => {
+            weekDays.forEach((day, index) => {
                 // Calculate the actual date for this day in the selected week
                 const dayDate = getDateForDay(day);
                 const isDateToday = dayDate ? isTodayFunc(dayDate) : false;
@@ -1207,6 +1227,9 @@ ${workout.details ? `
                 const today = new Date();
                 const startDate = new Date(state.startDate);
 
+                // Generate days of week for the first week
+                const weekDays = generateWeekDays(startDate);
+
                 // Calculate days since start date
                 const diffTime = Math.abs(today - startDate);
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -1214,11 +1237,16 @@ ${workout.details ? `
                 // Calculate which day of the week it is (0-6)
                 const dayIndex = diffDays % 7;
 
-                // Set the selected day to the correct day of week
-                state.selectedDay = state.daysOfWeek[dayIndex];
+                if (dayIndex < weekDays.length) {
+                    // Set the selected day to the correct day of week
+                    state.selectedDay = weekDays[dayIndex];
+                } else {
+                    // Default to first day if calculation is off
+                    state.selectedDay = weekDays[0];
+                }
             } else {
                 // Default to first day if no start date
-                state.selectedDay = state.daysOfWeek[0];
+                state.selectedDay = "Monday"; // Fallback
             }
 
             // Setup tab navigation
