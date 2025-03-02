@@ -505,20 +505,17 @@
             if (!state.startDate) return null;
 
             const startDateObj = new Date(state.startDate);
-            const startDayOfWeek = getDayOfWeek(startDateObj);
 
-            // Calculate the date for the first day (Monday) of the displayed week
-            const firstDayOfDisplayedWeek = new Date(startDateObj);
-            firstDayOfDisplayedWeek.setDate(
-                startDateObj.getDate() +
-                (state.displayWeek - 1) * 7 -
-                startDayOfWeek
-            );
-
-            // Calculate the date for the requested day
+            // Find the day index in the days of week array
             const dayIndex = state.daysOfWeek.indexOf(day);
-            const dateForDay = new Date(firstDayOfDisplayedWeek);
-            dateForDay.setDate(firstDayOfDisplayedWeek.getDate() + dayIndex);
+
+            // Calculate the date for the requested day based on start date
+            // First day of week 1 is the start date
+            const dateForDay = new Date(startDateObj);
+
+            // Add days: (week number - 1) * 7 + (day index)
+            const daysToAdd = (state.displayWeek - 1) * 7 + dayIndex;
+            dateForDay.setDate(startDateObj.getDate() + daysToAdd);
 
             return dateForDay;
         }
@@ -702,14 +699,15 @@
                 state.startDate = await fetchStartDate();
             }
 
-            const today = new Date();
-            const startDateObj = state.startDate ? new Date(state.startDate) : today;
+            const startDateObj = state.startDate ? new Date(state.startDate) : new Date();
 
             // Calculate the first day of the currently displayed week
+            // This is now simply (start date + (week number - 1) * 7)
             const weekStartDate = new Date(startDateObj);
-            weekStartDate.setDate(weekStartDate.getDate() + (state.displayWeek - 1) * 7);
+            weekStartDate.setDate(startDateObj.getDate() + (state.displayWeek - 1) * 7);
 
             // Calculate the last day of the currently displayed week
+            // This is (first day of week + 6)
             const weekEndDate = new Date(weekStartDate);
             weekEndDate.setDate(weekStartDate.getDate() + 6);
 
@@ -720,27 +718,39 @@
             const weekStatus = isCurrentWeek ? "Current Week" : (state.displayWeek < state.currentWeek ? "Past Week" : "Future Week");
 
             weekInfoElement.innerHTML = `
-<div class="stats-card">
-<div class="stats-title">${weekStatus}</div>
-<div><strong>Week Dates:</strong> ${formattedStartDate} - ${formattedEndDate}</div>
-<div><strong>Today:</strong> ${getCurrentDate()}</div>
-</div>
-`;
+    <div class="stats-card">
+      <div class="stats-title">${weekStatus}</div>
+      <div><strong>Week Dates:</strong> ${formattedStartDate} - ${formattedEndDate}</div>
+      <div><strong>Today:</strong> ${getCurrentDate()}</div>
+    </div>
+  `;
         }
 
         // Update day navigation
         function updateDayNavigation() {
             dayNavigator.innerHTML = '';
 
-            // Get today's day of week (0-6, where 0 is Monday)
-            const todayDayOfWeek = getDayOfWeek(new Date());
-            const todayDayName = state.daysOfWeek[todayDayOfWeek];
+            if (!state.startDate) return;
+
+            const startDateObj = new Date(state.startDate);
+            const today = new Date();
+
+            // First, find what day of the week the start date is (in terms of name)
+            const startDayIndex = getDayOfWeek(startDateObj);
+            const startDayName = state.daysOfWeek[startDayIndex];
+
+            // Reorder days of week array to start from the start date's day
+            const orderedDays = [];
+            for (let i = 0; i < 7; i++) {
+                orderedDays.push(state.daysOfWeek[(startDayIndex + i) % 7]);
+            }
 
             // Create day navigation items
-            state.daysOfWeek.forEach(day => {
+            orderedDays.forEach((day, index) => {
+                // Calculate the actual date for this day in the selected week
                 const dayDate = getDateForDay(day);
-                const isDateToday = dayDate ? isTodayFunc(dayDate) : day === todayDayName;
-                const isDateTomorrow = dayDate ? isTomorrowFunc(dayDate) : day === state.daysOfWeek[(todayDayOfWeek + 1) % 7];
+                const isDateToday = dayDate ? isTodayFunc(dayDate) : false;
+                const isDateTomorrow = dayDate ? isTomorrowFunc(dayDate) : false;
 
                 const dayElem = document.createElement('div');
                 dayElem.className = 'day-nav-item';
@@ -758,13 +768,29 @@
 
                 // Add the day name and date
                 dayElem.innerHTML = `
-${day.substring(0, 3)}
-${dayDate ? `<br><small>${formatDateBrief(dayDate)}</small>` : ''}
-`;
+      ${day.substring(0, 3)}
+      ${dayDate ? `<br><small>${formatDateBrief(dayDate)}</small>` : ''}
+    `;
 
                 // Add click event listener
                 dayElem.addEventListener('click', () => {
-                    setSelectedDay(day);
+                    // Update all day nav items before setting the selected day
+                    document.querySelectorAll('.day-nav-item').forEach(d => {
+                        d.classList.remove('active');
+                    });
+                    dayElem.classList.add('active');
+
+                    // Set the selected day and refresh content
+                    state.selectedDay = day;
+
+                    // Re-render content for the selected day
+                    renderSchedule();
+                    if (document.getElementById('workout-tab').style.display !== 'none') {
+                        renderWorkout(state.selectedDay);
+                    }
+                    if (document.getElementById('meals-tab').style.display !== 'none') {
+                        renderMeal(state.selectedDay);
+                    }
                 });
 
                 dayNavigator.appendChild(dayElem);
@@ -1181,10 +1207,24 @@ ${workout.details ? `
             // Get start date from backend
             state.startDate = await fetchStartDate();
 
-            // Set current day as the selected day
-            const now = new Date();
-            const currentDayIndex = getDayOfWeek(now);
-            state.selectedDay = state.daysOfWeek[currentDayIndex];
+            // Set selected day to today or the closest available day
+            if (state.startDate) {
+                const today = new Date();
+                const startDateObj = new Date(state.startDate);
+
+                // Find which day of the current week corresponds to today
+                const startDayIndex = getDayOfWeek(startDateObj);
+                const todayDayIndex = getDayOfWeek(today);
+
+                // Calculate day difference adjusting for the custom week start
+                let dayDiff = (todayDayIndex - startDayIndex + 7) % 7;
+
+                // Set the selected day
+                state.selectedDay = state.daysOfWeek[(startDayIndex + dayDiff) % 7];
+            } else {
+                // Default to first day if no start date available
+                state.selectedDay = state.daysOfWeek[0];
+            }
 
             // Setup tab navigation
             setupTabNavigation();
