@@ -82,14 +82,15 @@ function calculateCurrentWeek(chatId) {
   const startDate = new Date(user.startDate);
   const currentDate = new Date();
 
-  // Calculate difference in days without adjusting for day of week
+  // Calculate difference in days
   const diffTime = Math.abs(currentDate - startDate);
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   // Calculate week number (1-indexed)
-  const currentWeek = Math.min(Math.floor(diffDays / 7) + 1, 8); // Max 8 weeks
+  const currentWeek = Math.floor(diffDays / 7) + 1;
 
-  return currentWeek;
+  // Cap at max weeks
+  return Math.min(currentWeek, 8);
 }
 
 // Get or update current week
