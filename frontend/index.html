@@ -914,7 +914,8 @@ ${workout.details ? `
             }
 
             // Count weekly progress (all tasks across all days)
-            const totalWeeklyTasks = Object.keys(progress).length;
+            const totalWeeklyTasks = Object.keys(progress)
+                .filter(key => !key.includes('daily') && !key.includes('total') && !key.includes('completed')).length;
             const completedWeeklyTasks = Object.values(progress).filter(value => value === true).length;
 
             // Calculate weekly percentage

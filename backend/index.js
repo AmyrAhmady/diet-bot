@@ -133,12 +133,15 @@ bot.command("generate", async (ctx) => {
     return;
   }
 
-  // Create new user with start date
+  // Create new user with start date and initialized progress
+  const startDate = new Date().toISOString();
+  const initialProgress = initializeUserProgress();
+
   db.get("users")
     .push({
       chatId: parseInt(chatId),
-      startDate: new Date().toISOString(),
-      progress: {}
+      startDate: startDate,
+      progress: initialProgress
     })
     .write();
 
@@ -169,12 +172,15 @@ bot.command("regenerate", async (ctx) => {
     .remove({ chatId: parseInt(chatId) })
     .write();
 
-  // Create new user with current date
+  // Create new user with current date and initialized progress
+  const startDate = new Date().toISOString();
+  const initialProgress = initializeUserProgress();
+
   db.get("users")
     .push({
       chatId: parseInt(chatId),
-      startDate: new Date().toISOString(),
-      progress: {}
+      startDate: startDate,
+      progress: initialProgress
     })
     .write();
 
@@ -302,27 +308,27 @@ app.get("/start-date", (req, res) => {
 // Get schedule - UPDATED to support day-specific schedules
 app.get("/schedule", (req, res) => {
   const { chatId, day } = req.query;
+  const schedule = getSchedule(chatId);
 
-  // If day is specified, return day-specific schedule
-  if (day) {
-    const schedule = getScheduleForDay(chatId, day);
-    if (schedule) {
-      res.json(schedule);
+  if (schedule) {
+    if (day) {
+      // Filter tasks for the specific day
+      const dayTasks = {};
+      Object.entries(schedule).forEach(([time, task]) => {
+        const taskId = `${day.toLowerCase()}_${time}`;
+        task.id = taskId; // Add task ID for frontend reference
+        dayTasks[time] = task;
+      });
+      res.json(dayTasks);
     } else {
-      res.status(404).send({ message: "Schedule not found for this day" });
+      res.json(schedule);
     }
   } else {
-    // Otherwise return the general schedule (for backward compatibility)
-    const schedule = getSchedule(chatId);
-    if (schedule) {
-      res.json(schedule);
-    } else {
-      res.status(404).send({ message: "Schedule not found" });
-    }
+    res.status(404).send({ message: "Schedule not found" });
   }
 });
 
-// New function to get schedule for a specific day
+// Function to get schedule for a specific day
 function getScheduleForDay(chatId, day) {
   const schedule = getSchedule(chatId);
   if (!schedule) return null;
@@ -397,29 +403,30 @@ function updateProgress(chatId, task, week, completed) {
     .get("users")
     .find({ chatId: parseInt(chatId) })
     .value();
+
   if (!user) {
     return; // User not found
   }
 
-  // Initialize progress if it doesn't exist
+  // Ensure progress structure exists
   if (!user.progress) {
-    user.progress = {};
+    user.progress = initializeUserProgress();
   }
+
   if (!user.progress[week]) {
-    user.progress[week] = {};
+    user.progress[week] = {
+      daily: {},
+      total: 0,
+      completed: 0
+    };
   }
 
   // Set the completion status for the task
   user.progress[week][task] = completed;
 
-  // Update daily progress tracking
-  if (!user.progress[week].daily) {
-    user.progress[week].daily = {};
-  }
-
-  // Extract day from task ID if it's in the format "day_time"
+  // Extract day from task id
   const taskParts = task.split('_');
-  if (taskParts.length > 1) {
+  if (taskParts.length >= 2) {
     const day = taskParts[0];
 
     // Initialize day tracking if needed
@@ -443,7 +450,7 @@ function updateProgress(chatId, task, week, completed) {
 
   // Update total progress for the week
   const totalTasks = Object.keys(user.progress[week])
-    .filter(key => !key.includes('daily'))
+    .filter(key => !key.includes('daily') && !key.includes('total') && !key.includes('completed'))
     .length;
 
   const completedTasks = Object.entries(user.progress[week])
@@ -479,42 +486,19 @@ app.get("/get-progress", (req, res) => {
     .value();
 
   if (user && user.progress && user.progress[week]) {
-    // If progress exists but daily tracking doesn't, initialize it
-    if (!user.progress[week].daily) {
-      user.progress[week].daily = {};
-
-      // Group tasks by day and calculate progress
-      const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-      daysOfWeek.forEach(day => {
-        const dayTasks = Object.keys(user.progress[week]).filter(key =>
-          key.startsWith(day + '_')
-        );
-
-        if (dayTasks.length > 0) {
-          const completedDayTasks = dayTasks.filter(key =>
-            user.progress[week][key] === true
-          ).length;
-
-          user.progress[week].daily[day] = {
-            total: dayTasks.length,
-            completed: completedDayTasks
-          };
-        }
-      });
-
-      // Save the updated progress with daily tracking
-      db.get("users")
-        .find({ chatId: parseInt(chatId) })
-        .assign({ progress: user.progress })
-        .write();
-    }
-
     res.json(user.progress[week]);
   } else {
-    // Initialize an empty progress object with daily tracking structure
+    // Return empty progress structure with daily tracking
     const emptyProgress = {
-      daily: {},
+      daily: {
+        monday: { total: 0, completed: 0 },
+        tuesday: { total: 0, completed: 0 },
+        wednesday: { total: 0, completed: 0 },
+        thursday: { total: 0, completed: 0 },
+        friday: { total: 0, completed: 0 },
+        saturday: { total: 0, completed: 0 },
+        sunday: { total: 0, completed: 0 }
+      },
       total: 0,
       completed: 0
     };
@@ -564,6 +548,45 @@ const scheduleData = {
     description: "Supports muscle recovery & fat loss",
   },
 };
+
+// Function to initialize user progress for all weeks
+function initializeUserProgress() {
+  const progress = {};
+  const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  // Generate progress structure for all 8 weeks
+  for (let week = 1; week <= 8; week++) {
+    progress[week] = {
+      daily: {},
+      total: 0,
+      completed: 0
+    };
+
+    // Get the number of schedule items per day
+    const tasksPerDay = Object.keys(scheduleData).length; // Should be 11 based on scheduleData
+
+    // Initialize daily structure and tasks for each day
+    daysOfWeek.forEach(day => {
+      // Pre-create task entries for standard schedule items
+      Object.keys(scheduleData).forEach(time => {
+        const taskId = `${day}_${time}`;
+        progress[week][taskId] = false; // Initialize as not completed
+      });
+
+      // Initialize daily progress tracking with correct task count
+      progress[week].daily[day] = {
+        total: tasksPerDay,
+        completed: 0
+      };
+    });
+
+    // Count total tasks correctly (7 days × 11 tasks per day = 77)
+    const totalTasks = daysOfWeek.length * tasksPerDay;
+    progress[week].total = totalTasks;
+  }
+
+  return progress;
+}
 
 // Function to generate meal data
 function generateMealData(chatId) {
@@ -773,18 +796,23 @@ function generateWorkoutData(chatId) {
 
 // Function to generate the schedule
 function generateSchedule(chatId) {
+  // Check if schedule already exists for this user
   const existingSchedule = db
     .get("schedules")
     .find({ chatId: parseInt(chatId) })
     .value();
 
   if (!existingSchedule) {
+    // Create a new schedule
     db.get("schedules")
-      .push({ chatId: parseInt(chatId), tasks: scheduleData })
+      .push({
+        chatId: parseInt(chatId),
+        tasks: scheduleData
+      })
       .write();
 
-    // Generate workout data for new users
-    generateWorkoutData(parseInt(chatId));
+    // Generate workout data
+    generateWorkoutData(chatId);
   }
 }
 
