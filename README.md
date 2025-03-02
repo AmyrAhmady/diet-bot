@@ -1,4 +1,4 @@
-# diet-bot 
+# fitness-bot 
 
 It's just a personal bot, only publishing it so if someone needs an example of Telegram's **mini apps** they can use it.
 
