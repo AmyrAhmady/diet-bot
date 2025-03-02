@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>My Fitness Progress</title>
+    <!-- Telegram WebApp script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Inline CSS */
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .app {
+            height: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .statusbar {
+            background-color: #4CAF50;
+            height: 20px;
+        }
+
+        .navbar {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .page-content {
+            padding: 15px;
+        }
+
+        .block {
+            margin-bottom: 15px;
+        }
+
+        .tabs-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            background-color: #fff;
+            padding: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            padding: 8px 15px;
+            border-radius: 20px;
+            background-color: #e0e0e0;
+            color: #333;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .tab.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .meal-section {
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .meal-header {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #4CAF50;
+        }
+
+        .meal-content {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .week-navigator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 0 10px;
+        }
+
+        /* New day navigator */
+        .day-navigator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 0 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .day-nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .day-nav-item.active {
+            color: #4CAF50;
+            font-weight: bold;
+            border-bottom: 3px solid #4CAF50;
+        }
+
+        .current-day-indicator {
+            position: relative;
+        }
+
+        .current-day-indicator::after {
+            content: "•";
+            position: absolute;
+            top: -5px;
+            right: 5px;
+            color: #4CAF50;
+            font-size: 16px;
+        }
+
+        .navigator-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .navigator-button:disabled {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        .stats-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .progress-container {
+            margin-bottom: 15px;
+        }
+
+        /* New styled checklist for Schedule */
+        .schedule-item {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: flex-start;
+            transition: all 0.3s;
+        }
+
+        .schedule-checkbox {
+            margin-right: 15px;
+            min-width: 22px;
+            height: 22px;
+            accent-color: #4CAF50;
+            cursor: pointer;
+        }
+
+        .schedule-content {
+            flex: 1;
+        }
+
+        .schedule-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .schedule-title i {
+            margin-right: 8px;
+            color: #4CAF50;
+        }
+
+        .schedule-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .schedule-details {
+            font-size: 13px;
+            color: #888;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .completed .schedule-title,
+        .completed .schedule-description,
+        .completed .schedule-details {
+            text-decoration: line-through;
+            color: #8e8e8e;
+        }
+
+        /* Date indicators */
+        .date-indicator {
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 13px;
+            color: #666;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .date-today {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .date-tomorrow {
+            background-color: #FFC107;
+            color: #333;
+        }
+
+        /* Dropdown selectors styling */
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 12px auto;
+        }
+
+        /* Workout card styling */
+        .workout-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 0;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .workout-header {
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+            font-size: 16px;
+            color: #4CAF50;
+        }
+
+        .workout-content {
+            padding: 15px;
+        }
+
+        .workout-description {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .workout-details {
+            background-color: #f5f5f5;
+            padding: 12px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .workout-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Status Bar -->
+        <div class="statusbar"></div>
+
+        <!-- Main View -->
+        <div class="view view-main">
+            <!-- Initial Page -->
+            <div data-name="home" class="page">
+
+                <!-- Top Navbar -->
+                <div class="navbar">
+                    <div class="navbar-inner">
+                        <div class="title">Fitness Progress</div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Page Content -->
+                <div class="page-content">
+                    <div class="block" id="week-info">
+                        <!-- Week info will be added here -->
+                    </div>
+
+                    <div class="week-navigator">
+                        <button id="prev-week" class="navigator-button">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <div id="week-title" class="font-bold"></div>
+                        <button id="next-week" class="navigator-button">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Progressive stats -->
+                    <div class="stats-card">
+                        <div class="progress-container">
+                            <div class="stats-title">Week Progress</div>
+                            <div class="progress-bar">
+                                <div id="week-progress-fill" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div id="week-progress-text" class="text-center text-sm">0%</div>
+                        </div>
+
+                        <div class="progress-container">
+                            <div class="stats-title">Daily Progress</div>
+                            <div class="progress-bar">
+                                <div id="daily-progress-fill" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div id="daily-progress-text" class="text-center text-sm">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Day navigator -->
+                    <div class="day-navigator" id="day-navigator">
+                        <!-- Day navigation items will be populated dynamically -->
+                    </div>
+
+                    <div class="tabs-container">
+                        <div class="tab active" data-tab="schedule">Schedule</div>
+                        <div class="tab" data-tab="workout">Workout</div>
+                        <div class="tab" data-tab="meals">Meals</div>
+                    </div>
+
+                    <!-- Schedule Tab -->
+                    <div id="schedule-tab" class="tab-content">
+                        <div id="schedule-list">
+                            <!-- Schedule items will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Workout Tab -->
+                    <div id="workout-tab" class="tab-content" style="display: none">
+                        <div id="workout-content" class="block">
+                            <!-- Workout content will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Meals Tab -->
+                    <div id="meals-tab" class="tab-content" style="display: none">
+                        <div id="meal-content" class="block">
+                            <!-- Meal content will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript -->
+    <script>
+        // DOM elements
+        const scheduleList = document.getElementById('schedule-list');
+        const weekTitle = document.getElementById('week-title');
+        const nextWeekButton = document.getElementById('next-week');
+        const prevWeekButton = document.getElementById('prev-week');
+        const weekInfoElement = document.getElementById('week-info');
+        const workoutContent = document.getElementById('workout-content');
+        const mealContent = document.getElementById('meal-content');
+        const weekProgressFill = document.getElementById('week-progress-fill');
+        const weekProgressText = document.getElementById('week-progress-text');
+        const dailyProgressFill = document.getElementById('daily-progress-fill');
+        const dailyProgressText = document.getElementById('daily-progress-text');
+        const dayNavigator = document.getElementById('day-navigator');
+
+        // Get the Telegram WebApp object
+        const tg = window.Telegram.WebApp;
+        const chatId = tg.initDataUnsafe.user.id;
+        const backendUrl = 'http://localhost:3001'; // Replace with your backend URL
+
+        // Manage app state
+        let state = {
+            currentWeek: 1,
+            totalWeeks: 8,
+            displayWeek: 1,
+            startDate: null,
+            today: new Date(),
+            selectedDay: null, // Will be set to today's day by default
+            daysOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            activeTab: 'schedule'
+        };
+
+        // --- Helper Functions ---
+
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Get current date
+        function getCurrentDate() {
+            return new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Get day of week (0-6 where 0 is Monday)
+        function getDayOfWeek(date) {
+            const day = date.getDay();
+            // Convert Sunday (0) to 6, and other days to 0-5
+            return day === 0 ? 6 : day - 1;
+        }
+
+        // Calculate date for a specific day in the selected week
+        function getDateForDay(day) {
+            // Get the start date of the current program
+            if (!state.startDate) return null;
+
+            const startDateObj = new Date(state.startDate);
+            const startDayOfWeek = getDayOfWeek(startDateObj);
+
+            // Calculate the date for the first day (Monday) of the displayed week
+            const firstDayOfDisplayedWeek = new Date(startDateObj);
+            firstDayOfDisplayedWeek.setDate(
+                startDateObj.getDate() +
+                (state.displayWeek - 1) * 7 -
+                startDayOfWeek
+            );
+
+            // Calculate the date for the requested day
+            const dayIndex = state.daysOfWeek.indexOf(day);
+            const dateForDay = new Date(firstDayOfDisplayedWeek);
+            dateForDay.setDate(firstDayOfDisplayedWeek.getDate() + dayIndex);
+
+            return dateForDay;
+        }
+
+        // Format date briefly (e.g., "Mar 5")
+        function formatDateBrief(date) {
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Check if a date is today
+        function isTodayFunc(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() &&
+                date.getMonth() === today.getMonth() &&
+                date.getFullYear() === today.getFullYear();
+        }
+
+        // Check if a date is tomorrow
+        function isTomorrowFunc(date) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return date.getDate() === tomorrow.getDate() &&
+                date.getMonth() === tomorrow.getMonth() &&
+                date.getFullYear() === tomorrow.getFullYear();
+        }
+
+        // Check if user exists
+        async function checkUserExists() {
+            try {
+                const response = await fetch(`${backendUrl}/user-exists?chatId=${chatId}`);
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error checking if user exists:", error);
+                return false;
+            }
+        }
+
+        // Fetch schedule data from backend
+        async function fetchSchedule() {
+            try {
+                const response = await fetch(`${backendUrl}/schedule?chatId=${chatId}`);
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching schedule:", error);
+                return null; // Or a default schedule
+            }
+        }
+
+        // Fetch workout data from backend
+        async function fetchWorkout(week, day) {
+            try {
+                const response = await fetch(`${backendUrl}/workout?chatId=${chatId}&week=${week}&day=${day}`);
+                if (!response.ok) {
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching workout:", error);
+                return null; // Or a default workout
+            }
+        }
+
+        // Fetch meal data from backend
+        async function fetchMeal(day) {
+            try {
+                const response = await fetch(`${backendUrl}/meal?chatId=${chatId}&day=${day}`);
+                if (!response.ok) {
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching meal:", error);
+                return null; // Or a default meal
+            }
+        }
+
+        // Fetch user's progress from backend
+        async function fetchProgress(week) {
+            try {
+                const response = await fetch(`${backendUrl}/get-progress?chatId=${chatId}&week=${week}`);
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Error fetching progress:", error);
+                return {}; // Return an empty object on error
+            }
+        }
+
+        // Update progress on the backend
+        async function updateProgress(task, week, completed) {
+            try {
+                const response = await fetch(`${backendUrl}/update-progress`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ chatId, task, week, completed }),
+                });
+
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+
+            } catch (error) {
+                console.error("Error updating progress:", error);
+                // Handle error (e.g., show a message to the user)
+            }
+        }
+
+        // Fetch current week from the backend
+        async function fetchCurrentWeek() {
+            try {
+                const response = await fetch(`${backendUrl}/current-week?chatId=${chatId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data.week;
+            } catch (error) {
+                console.error('Error fetching current week:', error);
+                return 1; // Return default week
+            }
+        }
+
+        // Fetch start date from backend
+        async function fetchStartDate() {
+            try {
+                const response = await fetch(`${backendUrl}/start-date?chatId=${chatId}`);
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                const data = await response.json();
+                return data.startDate;
+            } catch (error) {
+                console.error("Error fetching start date:", error);
+                return null;
+            }
+        }
+
+        // --- UI Update Functions ---
+
+        // Update week navigation buttons
+        function updateWeekNavigation() {
+            // Enable/disable previous button
+            if (state.displayWeek <= 1) {
+                prevWeekButton.disabled = true;
+                prevWeekButton.style.opacity = "0.5";
+            } else {
+                prevWeekButton.disabled = false;
+                prevWeekButton.style.opacity = "1";
+            }
+
+            // Enable/disable next button
+            if (state.displayWeek >= state.totalWeeks) {
+                nextWeekButton.disabled = true;
+                nextWeekButton.style.opacity = "0.5";
+            } else {
+                nextWeekButton.disabled = false;
+                nextWeekButton.style.opacity = "1";
+            }
+
+            // Update week title
+            weekTitle.textContent = `Week ${state.displayWeek}`;
+        }
+
+        // Update week info section
+        async function updateWeekInfo() {
+            // Fetch start date if not already fetched
+            if (!state.startDate) {
+                state.startDate = await fetchStartDate();
+            }
+
+            const today = new Date();
+            const startDateObj = state.startDate ? new Date(state.startDate) : today;
+
+            // Calculate the first day of the currently displayed week
+            const weekStartDate = new Date(startDateObj);
+            weekStartDate.setDate(weekStartDate.getDate() + (state.displayWeek - 1) * 7);
+
+            // Calculate the last day of the currently displayed week
+            const weekEndDate = new Date(weekStartDate);
+            weekEndDate.setDate(weekStartDate.getDate() + 6);
+
+            const formattedStartDate = formatDate(weekStartDate);
+            const formattedEndDate = formatDate(weekEndDate);
+
+            const isCurrentWeek = state.displayWeek === state.currentWeek;
+            const weekStatus = isCurrentWeek ? "Current Week" : (state.displayWeek < state.currentWeek ? "Past Week" : "Future Week");
+
+            weekInfoElement.innerHTML = `
+<div class="stats-card">
+<div class="stats-title">${weekStatus}</div>
+<div><strong>Week Dates:</strong> ${formattedStartDate} - ${formattedEndDate}</div>
+<div><strong>Today:</strong> ${getCurrentDate()}</div>
+</div>
+`;
+        }
+
+        // Update day navigation
+        function updateDayNavigation() {
+            dayNavigator.innerHTML = '';
+
+            // Get today's day of week (0-6, where 0 is Monday)
+            const todayDayOfWeek = getDayOfWeek(new Date());
+            const todayDayName = state.daysOfWeek[todayDayOfWeek];
+
+            // Create day navigation items
+            state.daysOfWeek.forEach(day => {
+                const dayDate = getDateForDay(day);
+                const isDateToday = dayDate ? isTodayFunc(dayDate) : day === todayDayName;
+                const isDateTomorrow = dayDate ? isTomorrowFunc(dayDate) : day === state.daysOfWeek[(todayDayOfWeek + 1) % 7];
+
+                const dayElem = document.createElement('div');
+                dayElem.className = 'day-nav-item';
+                dayElem.dataset.day = day;
+
+                // Mark current selected day
+                if (state.selectedDay === day) {
+                    dayElem.classList.add('active');
+                }
+
+                // Add current day indicator
+                if (isDateToday) {
+                    dayElem.classList.add('current-day-indicator');
+                }
+
+                // Add the day name and date
+                dayElem.innerHTML = `
+${day.substring(0, 3)}
+${dayDate ? `<br><small>${formatDateBrief(dayDate)}</small>` : ''}
+`;
+
+                // Add click event listener
+                dayElem.addEventListener('click', () => {
+                    setSelectedDay(day);
+                });
+
+                dayNavigator.appendChild(dayElem);
+            });
+        }
+
+        // Set the selected day
+        function setSelectedDay(day) {
+            state.selectedDay = day;
+
+            // Update UI to reflect the change
+            document.querySelectorAll('.day-nav-item').forEach(item => {
+                if (item.dataset.day === day) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Refresh content for the new day
+            refreshContent();
+        }
+
+        // Render workout for a specific day
+        async function renderWorkout(day) {
+            const workout = await fetchWorkout(state.displayWeek, day);
+            workoutContent.innerHTML = "";
+
+            const dayDate = getDateForDay(day);
+            const dateStr = dayDate ? formatDate(dayDate) : '';
+            const isToday = dayDate && isTodayFunc(dayDate);
+            const isTmrw = dayDate && isTomorrowFunc(dayDate);
+
+            const dateIndicator = isToday ?
+                '<span class="date-indicator date-today">Today</span>' :
+                (isTmrw ? '<span class="date-indicator date-tomorrow">Tomorrow</span>' :
+                    (dateStr ? `<span class="date-indicator">${dateStr}</span>` : ''));
+
+            if (workout) {
+                workoutContent.innerHTML = `
+<div class="workout-card">
+<div class="workout-header">${workout.title} ${dateIndicator}</div>
+<div class="workout-content">
+<div class="workout-description">${workout.description}</div>
+${workout.details ? `
+<div class="workout-label">Details:</div>
+<div class="workout-details">${workout.details}</div>
+` : ''}
+</div>
+</div>
+`;
+            } else {
+                workoutContent.innerHTML = `
+<div class="workout-card">
+<div class="workout-content">
+<p>No workout scheduled for ${day} ${dateIndicator} in Week ${state.displayWeek}.</p>
+</div>
+</div>
+`;
+            }
+        }
+
+        // Render meal for a specific day
+        async function renderMeal(day) {
+            const meal = await fetchMeal(day);
+            mealContent.innerHTML = "";
+
+            const dayDate = getDateForDay(day);
+            const dateStr = dayDate ? formatDate(dayDate) : '';
+            const isToday = dayDate && isTodayFunc(dayDate);
+            const isTmrw = dayDate && isTomorrowFunc(dayDate);
+
+            const dateIndicator = isToday ?
+                '<span class="date-indicator date-today">Today</span>' :
+                (isTmrw ? '<span class="date-indicator date-tomorrow">Tomorrow</span>' :
+                    (dateStr ? `<span class="date-indicator">${dateStr}</span>` : ''));
+
+            if (meal) {
+                mealContent.innerHTML = `
+<div class="meal-section">
+<div class="meal-header">Meals for ${day} ${dateIndicator}</div>
+</div>
+<div class="meal-section">
+<div class="meal-header">🍽️ Main Meal (10-11 PM)</div>
+<div class="meal-content">${meal.mainMeal}</div>
+</div>
+<div class="meal-section">
+<div class="meal-header">🥕 Snack (4-5 PM)</div>
+<div class="meal-content">${meal.snack}</div>
+</div>
+`;
+            } else {
+                mealContent.innerHTML = `
+<div class="meal-section">
+<div class="meal-content">
+<p>No meal data available for ${day} ${dateIndicator}.</p>
+</div>
+</div>
+`;
+            }
+        }
+
+        // Calculate and display weekly progress
+        async function updateWeekProgressDisplay(week) {
+            const progress = await fetchProgress(week);
+
+            if (!progress) {
+                weekProgressFill.style.width = "0%";
+                weekProgressText.textContent = "0/0";
+                dailyProgressFill.style.width = "0%";
+                dailyProgressText.textContent = "0/0";
+                return;
+            }
+
+            // Count weekly progress (all tasks across all days)
+            const totalWeeklyTasks = Object.keys(progress).length;
+            const completedWeeklyTasks = Object.values(progress).filter(value => value === true).length;
+
+            // Calculate weekly percentage
+            const weeklyPercentage = totalWeeklyTasks > 0 ? Math.round((completedWeeklyTasks / totalWeeklyTasks) * 100) : 0;
+
+            // Update weekly progress UI
+            weekProgressFill.style.width = `${weeklyPercentage}%`;
+            weekProgressText.textContent = `${completedWeeklyTasks}/${totalWeeklyTasks} (${weeklyPercentage}%)`;
+
+            // Calculate daily progress if we have a selected day
+            if (state.selectedDay) {
+                // Filter progress for the current day's tasks only
+                const todaysTasks = Object.keys(progress).filter(taskKey => {
+                    // This would need to be adjusted based on how you store day-specific tasks
+                    // For example, you might prefix tasks with day names or have a mapping
+                    return taskKey.includes(state.selectedDay.toLowerCase());
+                });
+
+                // If no day-specific tasks are found, try using the time-based tasks for the current day
+                const totalDailyTasks = todaysTasks.length || Object.keys(progress).filter(key => key.includes(':')).length;
+                const completedDailyTasks = todaysTasks.length
+                    ? todaysTasks.filter(key => progress[key] === true).length
+                    : Object.entries(progress)
+                        .filter(([key, value]) => key.includes(':') && value === true)
+                        .length;
+
+                // Calculate daily percentage
+                const dailyPercentage = totalDailyTasks > 0 ? Math.round((completedDailyTasks / totalDailyTasks) * 100) : 0;
+
+                // Update daily progress UI
+                dailyProgressFill.style.width = `${dailyPercentage}%`;
+                dailyProgressText.textContent = `${completedDailyTasks}/${totalDailyTasks} (${dailyPercentage}%)`;
+            }
+        }
+
+        // Render the schedule for the currently selected day
+        async function renderSchedule() {
+            const schedule = await fetchSchedule();
+            const progress = await fetchProgress(state.displayWeek);
+
+            scheduleList.innerHTML = ''; // Clear previous list items
+
+            if (schedule) {
+                for (const [time, task] of Object.entries(schedule)) {
+                    const isCompleted = progress && progress[time] === true;
+
+                    const scheduleItem = document.createElement('div');
+                    scheduleItem.classList.add('schedule-item');
+                    if (isCompleted) {
+                        scheduleItem.classList.add('completed');
+                    }
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = isCompleted;
+                    checkbox.classList.add('schedule-checkbox');
+                    checkbox.dataset.time = time;
+
+                    const content = document.createElement('div');
+                    content.classList.add('schedule-content');
+
+                    // Get date for the selected day
+                    const dayDate = getDateForDay(state.selectedDay);
+                    const isToday = dayDate && isTodayFunc(dayDate);
+                    const isTomorrow = dayDate && isTomorrowFunc(dayDate);
+
+                    // Create date indicator 
+                    const dateIndicator = document.createElement('span');
+                    dateIndicator.classList.add('date-indicator');
+                    if (isToday) {
+                        dateIndicator.classList.add('date-today');
+                        dateIndicator.textContent = 'Today';
+                    } else if (isTomorrow) {
+                        dateIndicator.classList.add('date-tomorrow');
+                        dateIndicator.textContent = 'Tomorrow';
+                    } else if (dayDate) {
+                        dateIndicator.textContent = formatDateBrief(dayDate);
+                    }
+
+                    // Different content based on task type
+                    if (time === "17:00") { // Workout
+                        const workout = await fetchWorkout(state.displayWeek, state.selectedDay);
+                        const title = document.createElement('div');
+                        title.classList.add('schedule-title');
+                        title.innerHTML = `<i class="fas fa-dumbbell"></i> ${workout ? workout.title : 'Workout'}`;
+                        title.appendChild(dateIndicator);
+
+                        const description = document.createElement('div');
+                        description.classList.add('schedule-description');
+                        description.textContent = workout ? workout.description : 'Check the workout tab for details';
+
+                        content.appendChild(title);
+                        content.appendChild(description);
+
+                        if (workout && workout.details) {
+                            const details = document.createElement('div');
+                            details.classList.add('schedule-details');
+                            details.textContent = workout.details.substring(0, 100) + (workout.details.length > 100 ? '...' : '');
+                            content.appendChild(details);
+                        }
+
+                    } else if (time === "16:00") { // Snack
+                        const meal = await fetchMeal(state.selectedDay);
+
+                        const title = document.createElement('div');
+                        title.classList.add('schedule-title');
+                        title.innerHTML = `<i class="fas fa-apple-alt"></i> ${time} - ${task.title}`;
+                        title.appendChild(dateIndicator);
+
+                        const description = document.createElement('div');
+                        description.classList.add('schedule-description');
+                        description.textContent = task.description;
+
+                        content.appendChild(title);
+                        content.appendChild(description);
+
+                        if (meal && meal.snack) {
+                            const details = document.createElement('div');
+                            details.classList.add('schedule-details');
+                            details.textContent = meal.snack.substring(0, 100) + (meal.snack.length > 100 ? '...' : '');
+                            content.appendChild(details);
+                        }
+
+                    } else if (time === "22:00") { // Main Meal
+                        const meal = await fetchMeal(state.selectedDay);
+
+                        const title = document.createElement('div');
+                        title.classList.add('schedule-title');
+                        title.innerHTML = `<i class="fas fa-utensils"></i> ${time} - ${task.title}`;
+                        title.appendChild(dateIndicator);
+
+                        const description = document.createElement('div');
+                        description.classList.add('schedule-description');
+                        description.textContent = task.description;
+
+                        content.appendChild(title);
+                        content.appendChild(description);
+
+                        if (meal && meal.mainMeal) {
+                            const details = document.createElement('div');
+                            details.classList.add('schedule-details');
+                            details.textContent = meal.mainMeal.substring(0, 100) + (meal.mainMeal.length > 100 ? '...' : '');
+                            content.appendChild(details);
+                        }
+
+                    } else {
+                        const title = document.createElement('div');
+                        title.classList.add('schedule-title');
+                        title.innerHTML = `<i class="fas fa-clock"></i> ${time} - ${task.title}`;
+                        title.appendChild(dateIndicator);
+
+                        const description = document.createElement('div');
+                        description.classList.add('schedule-description');
+                        description.textContent = task.description;
+
+                        content.appendChild(title);
+                        content.appendChild(description);
+                    }
+
+                    scheduleItem.appendChild(checkbox);
+                    scheduleItem.appendChild(content);
+                    scheduleList.appendChild(scheduleItem);
+
+                    // Event listener for checkbox changes
+                    checkbox.addEventListener('change', async (event) => {
+                        const completed = event.target.checked;
+                        const time = event.target.dataset.time;
+
+                        // Create a unique task ID that includes the day information
+                        const taskId = `${state.selectedDay.toLowerCase()}_${time}`;
+                        await updateProgress(taskId, state.displayWeek, completed);
+
+                        // Add or remove the 'completed' class based on checkbox state
+                        if (completed) {
+                            scheduleItem.classList.add('completed');
+                        } else {
+                            scheduleItem.classList.remove('completed');
+                        }
+
+                        // Update both progress displays
+                        updateWeekProgressDisplay(state.displayWeek);
+                    });
+                }
+            } else {
+                scheduleList.innerHTML = `<p>No schedule available for ${state.selectedDay} in Week ${state.displayWeek}.</p>`;
+            }
+        }
+
+        // --- Tab Navigation ---
+        function setupTabNavigation() {
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+
+                    // Update active tab in state
+                    state.activeTab = tab.getAttribute('data-tab');
+
+                    // Hide all tab contents
+                    tabContents.forEach(content => {
+                        content.style.display = 'none';
+                    });
+
+                    // Show selected tab content
+                    document.getElementById(`${state.activeTab}-tab`).style.display = 'block';
+
+                    refreshContent(); // Refresh content when switching tabs
+                });
+            });
+        }
+
+        // Refresh the content based on the current tab
+        function refreshContent() {
+            if (state.activeTab === 'schedule') {
+                renderSchedule();
+            } else if (state.activeTab === 'workout') {
+                renderWorkout(state.selectedDay);
+            } else if (state.activeTab === 'meals') {
+                renderMeal(state.selectedDay);
+            }
+
+            // Update progress displays
+            updateWeekProgressDisplay(state.displayWeek);
+        }
+
+        // --- Event Listeners ---
+
+        // Event listener for "Next Week" button
+        nextWeekButton.addEventListener('click', async () => {
+            state.displayWeek++; // Increment the display week
+            if (state.displayWeek > state.totalWeeks) {
+                state.displayWeek = state.totalWeeks;
+            }
+            await updateContent();
+        });
+
+        // Event listener for "Previous Week" button
+        prevWeekButton.addEventListener('click', async () => {
+            state.displayWeek--; // Decrement the display week
+            if (state.displayWeek < 1) {
+                state.displayWeek = 1;
+            }
+            await updateContent();
+        });
+
+        // Update all content
+        async function updateContent() {
+            updateWeekNavigation();
+            updateDayNavigation();
+            await updateWeekInfo();
+            refreshContent();
+        }
+
+        // --- Initialization ---
+        async function init() {
+            // Check if user exists
+            const userExists = await checkUserExists();
+
+            if (!userExists) {
+                // Show message to create a plan first
+                alert('Please use the /generate command in the bot to create your fitness plan first.');
+                return;
+            }
+
+            // Get current week from backend
+            state.currentWeek = await fetchCurrentWeek();
+            state.displayWeek = state.currentWeek; // Start by displaying current week
+
+            // Get start date from backend
+            state.startDate = await fetchStartDate();
+
+            // Set current day as the selected day
+            const now = new Date();
+            const currentDayIndex = getDayOfWeek(now);
+            state.selectedDay = state.daysOfWeek[currentDayIndex];
+
+            // Setup tab navigation
+            setupTabNavigation();
+
+            // Initial render
+            await updateContent();
+
+            // Expand the WebApp to full screen
+            tg.expand();
+        }
+
+        // Run initialization when document is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
