@@ -464,6 +464,7 @@
             totalWeeks: 8,
             displayWeek: 1,
             startDate: null,
+            selectedDay: null,
             today: new Date(),
             selectedDay: null, // Will be set to today's day by default
             daysOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -775,12 +776,28 @@ ${dayDate ? `<br><small>${formatDateBrief(dayDate)}</small>` : ''}
             state.selectedDay = day;
 
             // Update UI to reflect the change
-            document.querySelectorAll('.day-nav-item').forEach(item => {
-                if (item.dataset.day === day) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
+            document.querySelectorAll('.day-nav-item').forEach(dayNav => {
+                dayNav.addEventListener('click', () => {
+                    // Update selected day in state
+                    state.selectedDay = dayNav.dataset.day;
+
+                    // Update UI to show selected day
+                    document.querySelectorAll('.day-nav-item').forEach(d => {
+                        d.classList.remove('active');
+                    });
+                    dayNav.classList.add('active');
+
+                    // Re-render schedule with the selected day
+                    renderSchedule();
+
+                    // Also update any other content that depends on the selected day
+                    if (document.getElementById('workout-tab').style.display !== 'none') {
+                        renderWorkout(state.selectedDay);
+                    }
+                    if (document.getElementById('meals-tab').style.display !== 'none') {
+                        renderMeal(state.selectedDay);
+                    }
+                });
             });
 
             // Refresh content for the new day
@@ -917,6 +934,9 @@ ${workout.details ? `
 
         // Render the schedule for the currently selected day
         async function renderSchedule() {
+            // Get the day we want to render (use state.selectedDay if you added it, or daySelector.value)
+            const selectedDay = state.selectedDay || daySelector.value;
+
             const schedule = await fetchSchedule();
             const progress = await fetchProgress(state.displayWeek);
 
@@ -924,7 +944,11 @@ ${workout.details ? `
 
             if (schedule) {
                 for (const [time, task] of Object.entries(schedule)) {
-                    const isCompleted = progress && progress[time] === true;
+                    // Create a day-specific task ID
+                    const taskId = `${selectedDay.toLowerCase()}_${time}`;
+
+                    // Check if this specific day+time task is completed
+                    const isCompleted = progress && progress[taskId] === true;
 
                     const scheduleItem = document.createElement('div');
                     scheduleItem.classList.add('schedule-item');
@@ -937,6 +961,7 @@ ${workout.details ? `
                     checkbox.checked = isCompleted;
                     checkbox.classList.add('schedule-checkbox');
                     checkbox.dataset.time = time;
+                    checkbox.dataset.day = selectedDay.toLowerCase();
 
                     const content = document.createElement('div');
                     content.classList.add('schedule-content');
@@ -1047,12 +1072,11 @@ ${workout.details ? `
                     checkbox.addEventListener('change', async (event) => {
                         const completed = event.target.checked;
                         const time = event.target.dataset.time;
+                        const day = event.target.dataset.day;
+                        const taskId = `${day}_${time}`;
 
-                        // Create a unique task ID that includes the day information
-                        const taskId = `${state.selectedDay.toLowerCase()}_${time}`;
                         await updateProgress(taskId, state.displayWeek, completed);
 
-                        // Add or remove the 'completed' class based on checkbox state
                         if (completed) {
                             scheduleItem.classList.add('completed');
                         } else {
